@@ -1,9 +1,0 @@
-<Map>
-	<base>base.png</base>
-	<collision>collide.png</collision>
-  <object>objects/object.xml</object>
-	
-	<collisionKeyR>255</collisionKeyR>	
-	<collisionKeyG>0</collisionKeyG>
-	<collisionKeyB>255</collisionKeyB>
-</Map>
