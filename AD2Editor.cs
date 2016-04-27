@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -127,11 +128,21 @@ public class AD2Editor : AD2Game
             putMode = !putMode;
         }
 
+        if (keyboardState.IsKeyDown(Keys.F1) && genericNewKey)
+        {
+            generateNew();
+        }
 
         if (keyboardState.IsKeyDown(Keys.F2) && genericNewKey)
         {
             LevelIO.Save(this);
         }
+
+        if (keyboardState.IsKeyDown(Keys.F3) && genericNewKey)
+        {
+            loadNew();
+        }
+
 
         if (keyboardState.IsKeyDown(Keys.C) && genericNewKey)
         {
@@ -212,7 +223,7 @@ public class AD2Editor : AD2Game
 
         //GUI on top
         Utils.DrawRect(primarySpriteBatch, 0, 0, BaseWidth, 10, new Color(0.5f, 0.5f, 0.5f, 0.5f));
-        Utils.DefaultFont.Draw(primarySpriteBatch, "F1/LOAD  F2/SAVE  F3/HELP  V/VIEW  C/COLLIDE  R/RULER", 1, 1, Color.White, 1, true, Color.Black);
+        Utils.DefaultFont.Draw(primarySpriteBatch, "F1/NEW  F2/SAVE  F3/LOAD  F4/HELP  V/VIEW  C/COLLIDE  R/RULER", 1, 1, Color.White, 1, true, Color.Black);
 
         if (objectsCanCollide)
             primarySpriteBatch.DrawTexture(allowCollide, BaseWidth - 10, 0);
@@ -253,6 +264,111 @@ public class AD2Editor : AD2Game
     {
 
         return (pointX >= x1 && pointY >= y1 && pointX <= x1 + (width - 1) && pointY <= y1 + (height - 1));
+    }
+
+    public void generateNew()
+    {
+        // Create an instance of the open file dialog box.
+
+        System.Windows.Forms.OpenFileDialog baseMapD = new System.Windows.Forms.OpenFileDialog();
+        baseMapD.Title = "Select the Base Map";
+        baseMapD.ShowDialog();
+
+        System.Windows.Forms.OpenFileDialog collideMapD = new System.Windows.Forms.OpenFileDialog();
+        collideMapD.Title = "Select the Collide Map";
+        collideMapD.ShowDialog();
+
+        System.Windows.Forms.FolderBrowserDialog folderBrowserD = new System.Windows.Forms.FolderBrowserDialog();
+        folderBrowserD.Description = "Select the folder containing the objects";
+        folderBrowserD.ShowDialog();
+
+        // Process input if the user clicked OK.
+        baseMap = Utils.TextureLoader(baseMapD.FileName,false);
+        collideMap = Utils.TextureLoader(collideMapD.FileName,false);
+        objectsList = new LinkedList<AD2Object>[baseMap.Height];
+        for (int i = 0; i != baseMap.Height; i++)
+        {
+            objectsList[i] = new LinkedList<AD2Object>();
+        }
+
+        //Default: go to utils.
+        objectDirectory = folderBrowserD.SelectedPath;
+        string[] files = Directory.GetFiles(objectDirectory);
+
+        TextureName = new string[files.Length];
+        TextureList = new Texture2D[files.Length];
+        CollideTextureList = new Texture2D[files.Length];
+
+        for (int i = 0; i != files.Length; i++)
+        {
+            TextureName[i] = Path.GetFileName(files[i]);
+            TextureList[i] = Utils.TextureLoader(objectDirectory + "\\" + Path.GetFileName(files[i]),false);
+            CollideTextureList[i] = Utils.TextureLoader(objectDirectory + "\\collide\\" + Path.GetFileName(files[i]),false);
+        }
+    }
+
+    public void loadNew()
+    {
+        // Load a new map, but this time, for the objects, read the object XML and put it in.
+        System.Windows.Forms.OpenFileDialog baseMapD = new System.Windows.Forms.OpenFileDialog();
+        baseMapD.Title = "Select the Base Map";
+        baseMapD.ShowDialog();
+
+        System.Windows.Forms.OpenFileDialog collideMapD = new System.Windows.Forms.OpenFileDialog();
+        collideMapD.Title = "Select the Collide Map";
+        collideMapD.ShowDialog();
+
+        System.Windows.Forms.FolderBrowserDialog folderBrowserD = new System.Windows.Forms.FolderBrowserDialog();
+        folderBrowserD.Description = "Select the folder containing the objects WITH collision";
+        folderBrowserD.ShowDialog();
+
+        System.Windows.Forms.OpenFileDialog objectxmlD = new System.Windows.Forms.OpenFileDialog();
+        objectxmlD.Title = "Select the Object.XML";
+        objectxmlD.ShowDialog();
+
+        // Process input if the user clicked OK.
+        baseMap = Utils.TextureLoader(baseMapD.FileName, false);
+        collideMap = Utils.TextureLoader(collideMapD.FileName, false);
+        objectsList = new LinkedList<AD2Object>[baseMap.Height];
+        for (int i = 0; i != baseMap.Height; i++)
+        {
+            objectsList[i] = new LinkedList<AD2Object>();
+        }
+
+        //Default: go to utils.
+        objectDirectory = folderBrowserD.SelectedPath;
+        string[] files = Directory.GetFiles(objectDirectory);
+
+        TextureName = new string[files.Length];
+        TextureList = new Texture2D[files.Length];
+        CollideTextureList = new Texture2D[files.Length];
+
+        for (int i = 0; i != files.Length; i++)
+        {
+            TextureName[i] = Path.GetFileName(files[i]);
+            TextureList[i] = Utils.TextureLoader(objectDirectory + "\\" + Path.GetFileName(files[i]), false);
+            CollideTextureList[i] = Utils.TextureLoader(objectDirectory + "\\collide\\" + Path.GetFileName(files[i]), false);
+        }
+
+        Dictionary<string, LinkedList<string>> objsInPlace = Utils.GetXMLEntriesHash(objectxmlD.FileName,false);
+        foreach (string obj in objsInPlace["object"])
+        {
+            AD2Object newObj = new AD2Object();
+            string[] args = obj.Split(',');
+            newObj.name = args[0];
+            newObj.X = Int32.Parse(args[1]);
+            newObj.Y = Int32.Parse(args[2]);
+            for (int i = 0; i != TextureName.Length; i++)
+            {
+                if (newObj.name.Equals(TextureName[i]))
+                {
+                    newObj.t = TextureList[i];
+                    newObj.collide = CollideTextureList[i];
+                    break;
+                }
+            }
+            objectsList[newObj.Y + (newObj.t.Height - 1)].AddFirst(newObj);
+        }
     }
 }
     
